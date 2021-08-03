@@ -1,0 +1,29 @@
+{
+  "name": "mysql-core",
+  "version": "0.1.1",
+  "description": "MySQL",
+  "main": "./lib/index.js",
+  "types": "./src/index.ts",
+  "scripts": {
+    "build:lib": "tsc",
+    "clean:lib": "rimraf lib"
+  },
+  "dependencies": {
+    "mysql": "^2.18.1"
+  },
+  "devDependencies": {
+    "@types/mysql": "^2.15.19",
+    "tslint": "5.10.0",
+    "typescript": "^3.8.3"
+  },
+  "publishConfig": {
+    "registry": "https://registry.npmjs.org/"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git@github.com/core-ts/mysql"
+  },
+  "keywords": [
+    "MySQL"
+  ]
+}
