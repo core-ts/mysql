@@ -8,7 +8,7 @@ export * from './build';
 export class PoolManager implements Manager {
   constructor(public pool: Pool) {
     this.exec = this.exec.bind(this);
-    this.execute = this.execute.bind(this);
+    this.execBatch = this.execBatch.bind(this);
     this.query = this.query.bind(this);
     this.queryOne = this.queryOne.bind(this);
     this.executeScalar = this.executeScalar.bind(this);
@@ -17,8 +17,8 @@ export class PoolManager implements Manager {
   exec(sql: string, args?: any[]): Promise<number> {
     return exec(this.pool, sql, args);
   }
-  execute(statements: Statement[]): Promise<number> {
-    return execute(this.pool, statements);
+  execBatch(statements: Statement[]): Promise<number> {
+    return execBatch(this.pool, statements);
   }
   query<T>(sql: string, args?: any[], m?: StringMap, bools?: Attribute[]): Promise<T[]> {
     return query(this.pool, sql, args, m, bools);
@@ -33,7 +33,7 @@ export class PoolManager implements Manager {
     return count(this.pool, sql, args);
   }
 }
-export function execute(pool: Pool, statements: Statement[]): Promise<number> {
+export function execBatch(pool: Pool, statements: Statement[]): Promise<number> {
   return new Promise<number>((resolve, reject) => {
     pool.getConnection((er0, connection) => {
       if (er0) {
@@ -119,13 +119,21 @@ export function count(pool: Pool, sql: string, args?: any[]): Promise<number> {
   return executeScalar<number>(pool, sql, args);
 }
 
-export function save<T>(pool: Pool, obj: T, table: string, attrs: Attributes, ver?: string, buildParam?: (i: number) => string, i?: number): Promise<number> {
+export function save<T>(pool: Pool|((sql: string, args?: any[]) => Promise<number>), obj: T, table: string, attrs: Attributes, ver?: string, buildParam?: (i: number) => string, i?: number): Promise<number> {
   const s = buildToSave(obj, table, attrs, ver, buildParam);
-  return exec(pool, s.query, s.args);
+  if (typeof pool === 'function') {
+    return pool(s.query, s.args);
+  } else {
+    return exec(pool, s.query, s.args);
+  }
 }
-export function saveBatch<T>(pool: Pool, objs: T[], table: string, attrs: Attributes, ver?: string, buildParam?: (i: number) => string): Promise<number> {
+export function saveBatch<T>(pool: Pool|((statements: Statement[]) => Promise<number>), objs: T[], table: string, attrs: Attributes, ver?: string, buildParam?: (i: number) => string): Promise<number> {
   const s = buildToSaveBatch(objs, table, attrs, ver, buildParam);
-  return execute(pool, s);
+  if (typeof pool === 'function') {
+    return pool(s);
+  } else {
+    return execBatch(pool, s);
+  }
 }
 export function toArray<T>(arr: T[]): T[] {
   if (!arr || arr.length === 0) {
@@ -382,7 +390,7 @@ export class MySQLBatchWriter<T> {
       if (this.execute) {
         return this.execute(stmts);
       } else {
-        return execute(this.pool, stmts);
+        return execBatch(this.pool, stmts);
       }
     } else {
       return Promise.resolve(0);
