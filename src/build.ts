@@ -122,7 +122,7 @@ export function buildToSave<T>(obj: T, table: string, attrs: Attributes, ver?: s
       return null;
     } else {
       const q = `insert into ${table}(${cols.join(',')})values(${values.join(',')})`;
-      return { query: q, args };
+      return { query: q, params: args };
     }
   } else {
     const colSet: string[] = [];
@@ -159,10 +159,10 @@ export function buildToSave<T>(obj: T, table: string, attrs: Attributes, ver?: s
     }
     if (colSet.length === 0) {
       const q = `insert ignore into ${table}(${cols.join(',')})values(${values.join(',')})`;
-      return { query: q, args };
+      return { query: q, params: args };
     } else {
       const q = `insert into ${table}(${cols.join(',')})values(${values.join(',')}) on duplicate key update ${colSet.join(',')}`;
-      return { query: q, args };
+      return { query: q, params: args };
     }
   }
 }
@@ -254,11 +254,11 @@ export function buildToSaveBatch<T>(objs: T[], table: string, attrs: Attributes,
     }
     if (colSet.length === 0) {
       const q = `insert ignore into ${table}(${cols.join(',')})values(${values.join(',')});`;
-      const smt = { query: q, args };
+      const smt: Statement = { query: q, params: args };
       sts.push(smt);
     } else {
       const q = `insert into ${table}(${cols.join(',')})values(${values.join(',')}) on duplicate key update ${colSet.join(',')};`;
-      const smt = { query: q, args };
+      const smt: Statement = { query: q, params: args };
       sts.push(smt);
     }
   }

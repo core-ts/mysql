@@ -5,13 +5,17 @@ import {Attribute, Attributes, Manager, Statement, StringMap} from './metadata';
 export * from './metadata';
 export * from './build';
 
+// tslint:disable-next-line:class-name
+export class resource {
+  static string?: boolean;
+}
 export class PoolManager implements Manager {
   constructor(public pool: Pool) {
     this.exec = this.exec.bind(this);
     this.execBatch = this.execBatch.bind(this);
     this.query = this.query.bind(this);
     this.queryOne = this.queryOne.bind(this);
-    this.executeScalar = this.executeScalar.bind(this);
+    this.execScalar = this.execScalar.bind(this);
     this.count = this.count.bind(this);
   }
   exec(sql: string, args?: any[]): Promise<number> {
@@ -26,8 +30,8 @@ export class PoolManager implements Manager {
   queryOne<T>(sql: string, args?: any[], m?: StringMap, bools?: Attribute[]): Promise<T> {
     return queryOne(this.pool, sql, args, m, bools);
   }
-  executeScalar<T>(sql: string, args?: any[]): Promise<T> {
-    return executeScalar<T>(this.pool, sql, args);
+  execScalar<T>(sql: string, args?: any[]): Promise<T> {
+    return execScalar<T>(this.pool, sql, args);
   }
   count(sql: string, args?: any[]): Promise<number> {
     return count(this.pool, sql, args);
@@ -48,9 +52,9 @@ export function execBatch(pool: Pool, statements: Statement[]): Promise<number> 
           const queries: string[] = [];
           statements.forEach(item => {
             if (item.query.endsWith(';')) {
-              queries.push(format(item.query, item.args));
+              queries.push(format(item.query, toArray(item.params)));
             } else {
-              queries.push(format(item.query + ';', item.args));
+              queries.push(format(item.query + ';', toArray(item.params)));
             }
           });
           connection.query(queries.join(''), (er2, results) => {
@@ -76,11 +80,18 @@ export function execBatch(pool: Pool, statements: Statement[]): Promise<number> 
     });
   });
 }
+function buildError(err: any): any {
+  if (err.errno === 1062 && err.code === 'ER_DUP_ENTRY') {
+    err.error = 'duplicate';
+  }
+  return err;
+}
 export function exec(pool: Pool, sql: string, args?: any[]): Promise<number> {
   const p = toArray(args);
   return new Promise<number>((resolve, reject) => {
     return pool.query(sql, p, (err, results) => {
       if (err) {
+        buildError(err);
         return reject(err);
       } else {
         return resolve(results.affectedRows);
@@ -105,7 +116,7 @@ export function queryOne<T>(pool: Pool, sql: string, args?: any[], m?: StringMap
     return (r && r.length > 0 ? r[0] : null);
   });
 }
-export function executeScalar<T>(pool: Pool, sql: string, args?: any[]): Promise<T> {
+export function execScalar<T>(pool: Pool, sql: string, args?: any[]): Promise<T> {
   return queryOne<T>(pool, sql, args).then(r => {
     if (!r) {
       return null;
@@ -116,15 +127,15 @@ export function executeScalar<T>(pool: Pool, sql: string, args?: any[]): Promise
   });
 }
 export function count(pool: Pool, sql: string, args?: any[]): Promise<number> {
-  return executeScalar<number>(pool, sql, args);
+  return execScalar<number>(pool, sql, args);
 }
 
 export function save<T>(pool: Pool|((sql: string, args?: any[]) => Promise<number>), obj: T, table: string, attrs: Attributes, ver?: string, buildParam?: (i: number) => string, i?: number): Promise<number> {
   const s = buildToSave(obj, table, attrs, ver, buildParam);
   if (typeof pool === 'function') {
-    return pool(s.query, s.args);
+    return pool(s.query, s.params);
   } else {
-    return exec(pool, s.query, s.args);
+    return exec(pool, s.query, s.params);
   }
 }
 export function saveBatch<T>(pool: Pool|((statements: Statement[]) => Promise<number>), objs: T[], table: string, attrs: Attributes, ver?: string, buildParam?: (i: number) => string): Promise<number> {
@@ -135,17 +146,30 @@ export function saveBatch<T>(pool: Pool|((statements: Statement[]) => Promise<nu
     return execBatch(pool, s);
   }
 }
-export function toArray<T>(arr: T[]): T[] {
+export function toArray(arr: any[]): any[] {
   if (!arr || arr.length === 0) {
     return [];
   }
-  const p: T[] = [];
+  const p: any[] = [];
   const l = arr.length;
   for (let i = 0; i < l; i++) {
-    if (arr[i] === undefined) {
+    if (arr[i] === undefined || arr[i] == null) {
       p.push(null);
     } else {
-      p.push(arr[i]);
+      if (typeof arr[i] === 'object') {
+        if (arr[i] instanceof Date) {
+          p.push(arr[i]);
+        } else {
+          if (resource.string) {
+            const s: string = JSON.stringify(arr[i]);
+            p.push(s);
+          } else {
+            p.push(arr[i]);
+          }
+        }
+      } else {
+        p.push(arr[i]);
+      }
     }
   }
   return p;
@@ -177,7 +201,7 @@ export function handleBool<T>(objs: T[], bools: Attribute[]) {
         const b = field.true;
         if (b == null || b === undefined) {
           // tslint:disable-next-line:triple-equals
-          obj[field.name] = ('true' == value || '1' == value || 'T' == value || 'Y' == value);
+          obj[field.name] = ('1' == value || 'T' == value || 'Y' == value || 'true' == value);
         } else {
           // tslint:disable-next-line:triple-equals
           obj[field.name] = (value == b ? true : false);
@@ -343,9 +367,9 @@ export class MySQLWriter<T> {
     const stmt = buildToSave(obj2, this.table, this.attributes, this.version, this.param);
     if (stmt) {
       if (this.exec) {
-        return this.exec(stmt.query, stmt.args);
+        return this.exec(stmt.query, stmt.params);
       } else {
-        return exec(this.pool, stmt.query, stmt.args);
+        return exec(this.pool, stmt.query, stmt.params);
       }
     } else {
       return Promise.resolve(0);
