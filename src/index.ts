@@ -21,8 +21,8 @@ export class PoolManager implements Manager {
   exec(sql: string, args?: any[]): Promise<number> {
     return exec(this.pool, sql, args);
   }
-  execBatch(statements: Statement[]): Promise<number> {
-    return execBatch(this.pool, statements);
+  execBatch(statements: Statement[], firstSuccess?: boolean): Promise<number> {
+    return execBatch(this.pool, statements, firstSuccess);
   }
   query<T>(sql: string, args?: any[], m?: StringMap, bools?: Attribute[]): Promise<T[]> {
     return query(this.pool, sql, args, m, bools);
@@ -37,48 +37,119 @@ export class PoolManager implements Manager {
     return count(this.pool, sql, args);
   }
 }
-export function execBatch(pool: Pool, statements: Statement[]): Promise<number> {
-  return new Promise<number>((resolve, reject) => {
-    pool.getConnection((er0, connection) => {
-      if (er0) {
-        return reject(er0);
-      }
-      connection.beginTransaction(er1 => {
-        if (er1) {
-          connection.rollback(() => {
-            return reject(er1);
-          });
-        } else {
-          const queries: string[] = [];
-          statements.forEach(item => {
-            if (item.query.endsWith(';')) {
-              queries.push(format(item.query, toArray(item.params)));
-            } else {
-              queries.push(format(item.query + ';', toArray(item.params)));
+export function execBatch(pool: Pool, statements: Statement[], firstSuccess?: boolean): Promise<number> {
+  if (!statements || statements.length === 0) {
+    return Promise.resolve(0);
+  } else if (statements.length === 1) {
+    return exec(pool, statements[0].query, statements[0].params);
+  }
+  if (firstSuccess) {
+    return new Promise<number>((resolve, reject) => {
+      pool.getConnection((er0, connection) => {
+        if (er0) {
+          return reject(er0);
+        }
+        connection.beginTransaction(er1 => {
+          if (er1) {
+            connection.rollback(() => {
+              return reject(er1);
+            });
+          } else {
+            let query0: string;
+            const queries: string[] = [];
+            const l = statements.length;
+            for (let j = 0; j < l; j++) {
+              const item = statements[j];
+              if (j === 0) {
+                query0 = format(item.query, toArray(item.params));
+              } else {
+                if (item.query.endsWith(';')) {
+                  queries.push(format(item.query, toArray(item.params)));
+                } else {
+                  queries.push(format(item.query + ';', toArray(item.params)));
+                }
+              }
             }
-          });
-          connection.query(queries.join(''), (er2, results) => {
-            if (er2) {
-              connection.rollback(() => {
-                return reject(er2);
-              });
-            } else {
-              connection.commit((er3) => {
-                if (er3) {
-                  connection.rollback(() => {
-                    return reject(er3);
+            connection.query(query0, (er2a, results0: { affectedRows: number }) => {
+              if (er2a) {
+                buildError(er2a);
+                connection.rollback(() => {
+                  return reject(er2a);
+                });
+              } else {
+                if(results0.affectedRows === 0 ){
+                  return 0;
+                }
+                else {
+                  connection.query(queries.join(''), (er2, results) => {
+                    if (er2) {
+                      connection.rollback(() => {
+                        return reject(er2);
+                      });
+                    } else {
+                      connection.commit((er3) => {
+                        if (er3) {
+                          connection.rollback(() => {
+                            return reject(er3);
+                          });
+                        }
+                      });
+                      let c = 0;      
+                      c += results0.affectedRows;
+                      results.forEach(((x: { affectedRows: number }) => c += x.affectedRows));
+                      return resolve(c);
+                    }
                   });
                 }
-              });
-              let c = 0;
-              results.forEach(((x: { affectedRows: number; }) => c += x.affectedRows));
-              return resolve(c);
-            }
-          });
-        }
+              }
+            });
+          }
+        });
       });
     });
-  });
+  } else {
+    return new Promise<number>((resolve, reject) => {
+      pool.getConnection((er0, connection) => {
+        if (er0) {
+          return reject(er0);
+        }
+        connection.beginTransaction(er1 => {
+          if (er1) {
+            connection.rollback(() => {
+              return reject(er1);
+            });
+          } else {
+            const queries: string[] = [];
+            statements.forEach(item => {
+              if (item.query.endsWith(';')) {
+                queries.push(format(item.query, toArray(item.params)));
+              } else {
+                queries.push(format(item.query + ';', toArray(item.params)));
+              }
+            });
+            connection.query(queries.join(''), (er2, results) => {
+              if (er2) {
+                connection.rollback(() => {
+                  return reject(er2);
+                });
+              } else {
+                connection.commit((er3) => {
+                  if (er3) {
+                    connection.rollback(() => {
+                      return reject(er3);
+                    });
+                  }
+                });
+                let c = 0;
+                results.forEach(((x: { affectedRows: number; }) => c += x.affectedRows));
+                return resolve(c);
+              }
+            });
+          }
+        });
+      });
+    });
+  }
 }
 function buildError(err: any): any {
   if (err.errno === 1062 && err.code === 'ER_DUP_ENTRY') {
