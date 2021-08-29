@@ -171,7 +171,6 @@ export function buildToSaveBatch<T>(objs: T[], table: string, attrs: Attributes,
     buildParam = param;
   }
   const sts: Statement[] = [];
-  const meta = metadata(attrs);
   const ks = Object.keys(attrs);
   for (const obj of objs) {
     let i = 1;

@@ -77,10 +77,9 @@ export function execBatch(pool: Pool, statements: Statement[], firstSuccess?: bo
                   return reject(er2a);
                 });
               } else {
-                if(results0.affectedRows === 0 ){
+                if (results0 && results0.affectedRows === 0) {
                   return 0;
-                }
-                else {
+                } else {
                   connection.query(queries.join(''), (er2, results) => {
                     if (er2) {
                       connection.rollback(() => {
@@ -94,7 +93,7 @@ export function execBatch(pool: Pool, statements: Statement[], firstSuccess?: bo
                           });
                         }
                       });
-                      let c = 0;      
+                      let c = 0;
                       c += results0.affectedRows;
                       results.forEach(((x: { affectedRows: number }) => c += x.affectedRows));
                       return resolve(c);
@@ -267,15 +266,15 @@ export function handleBool<T>(objs: T[], bools: Attribute[]) {
   }
   for (const obj of objs) {
     for (const field of bools) {
-      const value = obj[field.name];
-      if (value != null && value !== undefined) {
+      const v = obj[field.name];
+      if (typeof v !== 'boolean' && v != null && v !== undefined ) {
         const b = field.true;
         if (b == null || b === undefined) {
           // tslint:disable-next-line:triple-equals
-          obj[field.name] = ('1' == value || 'T' == value || 'Y' == value || 'true' == value);
+          obj[field.name] = ('1' == v || 'T' == v || 'Y' == v || 'true' == v || 'on' == v);
         } else {
           // tslint:disable-next-line:triple-equals
-          obj[field.name] = (value == b ? true : false);
+          obj[field.name] = (v == b ? true : false);
         }
       }
     }
