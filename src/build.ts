@@ -98,10 +98,10 @@ export function buildToSave<T>(obj: T, table: string, attrs: Attributes, ver?: s
           values.push(p);
           if (typeof v === 'boolean') {
             if (v === true) {
-              const v2 = (attr.true ? attr.true : '1');
+              const v2 = (attr.true ? attr.true : `'1'`);
               args.push(v2);
             } else {
-              const v2 = (attr.false ? attr.false : '0');
+              const v2 = (attr.false ? attr.false : `'0'`);
               args.push(v2);
             }
           } else {
@@ -143,10 +143,10 @@ export function buildToSave<T>(obj: T, table: string, attrs: Attributes, ver?: s
             x = buildParam(i++);
             if (typeof v === 'boolean') {
               if (v === true) {
-                const v2 = (attr.true ? '' + attr.true : '1');
+                const v2 = (attr.true ? '' + attr.true : `'1'`);
                 args.push(v2);
               } else {
-                const v2 = (attr.false ? '' + attr.false : '0');
+                const v2 = (attr.false ? '' + attr.false : `'0'`);
                 args.push(v2);
               }
             } else {
@@ -200,10 +200,10 @@ export function buildToSaveBatch<T>(objs: T[], table: string, attrs: Attributes,
             values.push(p);
             if (typeof v === 'boolean') {
               if (v === true) {
-                const v2 = (attr.true ? attr.true : '1');
+                const v2 = (attr.true ? attr.true : `'1'`);
                 args.push(v2);
               } else {
-                const v2 = (attr.false ? attr.false : '0');
+                const v2 = (attr.false ? attr.false : `'0'`);
                 args.push(v2);
               }
             } else {
@@ -237,10 +237,10 @@ export function buildToSaveBatch<T>(objs: T[], table: string, attrs: Attributes,
             x = buildParam(i++);
             if (typeof v === 'boolean') {
               if (v === true) {
-                const v2 = (attr.true ? '' + attr.true : '1');
+                const v2 = (attr.true ? '' + attr.true : `'1'`);
                 args.push(v2);
               } else {
-                const v2 = (attr.false ? '' + attr.false : '0');
+                const v2 = (attr.false ? '' + attr.false : `'0'`);
                 args.push(v2);
               }
             } else {
