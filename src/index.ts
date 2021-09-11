@@ -1,4 +1,4 @@
-import {format, Pool} from 'mysql';
+import {format, Pool, PoolConnection} from 'mysql';
 import {buildToSave, buildToSaveBatch} from './build';
 import {Attribute, Attributes, Manager, Statement, StringMap} from './metadata';
 
@@ -18,23 +18,29 @@ export class PoolManager implements Manager {
     this.execScalar = this.execScalar.bind(this);
     this.count = this.count.bind(this);
   }
-  exec(sql: string, args?: any[]): Promise<number> {
-    return exec(this.pool, sql, args);
+  exec(sql: string, args?: any[], ctx?: any): Promise<number> {
+    const p = (ctx ? ctx : this.pool);
+    return exec(p, sql, args);
   }
-  execBatch(statements: Statement[], firstSuccess?: boolean): Promise<number> {
-    return execBatch(this.pool, statements, firstSuccess);
+  execBatch(statements: Statement[], firstSuccess?: boolean, ctx?: any): Promise<number> {
+    const p = (ctx ? ctx : this.pool);
+    return execBatch(p, statements, firstSuccess);
   }
-  query<T>(sql: string, args?: any[], m?: StringMap, bools?: Attribute[]): Promise<T[]> {
-    return query(this.pool, sql, args, m, bools);
+  query<T>(sql: string, args?: any[], m?: StringMap, bools?: Attribute[], ctx?: any): Promise<T[]> {
+    const p = (ctx ? ctx : this.pool);
+    return query(p, sql, args, m, bools);
   }
-  queryOne<T>(sql: string, args?: any[], m?: StringMap, bools?: Attribute[]): Promise<T> {
-    return queryOne(this.pool, sql, args, m, bools);
+  queryOne<T>(sql: string, args?: any[], m?: StringMap, bools?: Attribute[], ctx?: any): Promise<T> {
+    const p = (ctx ? ctx : this.pool);
+    return queryOne(p, sql, args, m, bools);
   }
-  execScalar<T>(sql: string, args?: any[]): Promise<T> {
-    return execScalar<T>(this.pool, sql, args);
+  execScalar<T>(sql: string, args?: any[], ctx?: any): Promise<T> {
+    const p = (ctx ? ctx : this.pool);
+    return execScalar<T>(p, sql, args);
   }
-  count(sql: string, args?: any[]): Promise<number> {
-    return count(this.pool, sql, args);
+  count(sql: string, args?: any[], ctx?: any): Promise<number> {
+    const p = (ctx ? ctx : this.pool);
+    return count(p, sql, args);
   }
 }
 export function execBatch(pool: Pool, statements: Statement[], firstSuccess?: boolean): Promise<number> {
@@ -156,7 +162,7 @@ function buildError(err: any): any {
   }
   return err;
 }
-export function exec(pool: Pool, sql: string, args?: any[]): Promise<number> {
+export function exec(pool: Pool|PoolConnection, sql: string, args?: any[]): Promise<number> {
   const p = toArray(args);
   return new Promise<number>((resolve, reject) => {
     return pool.query(sql, p, (err, results) => {
