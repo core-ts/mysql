@@ -1,4 +1,4 @@
-import {format, Pool, PoolConnection} from 'mysql';
+import {createPool as createPool2, format, Pool, PoolConnection} from 'mysql';
 import {buildToSave, buildToSaveBatch} from './build';
 import {Attribute, Attributes, Manager, Statement, StringMap} from './metadata';
 
@@ -8,6 +8,26 @@ export * from './build';
 // tslint:disable-next-line:class-name
 export class resource {
   static string?: boolean;
+}
+export interface Config {
+  host?: string | undefined;
+  port?: number;
+  server?: string | undefined;
+  database?: string | undefined;
+  user?: string | undefined;
+  password?: string | undefined;
+  multipleStatements?: boolean | undefined;
+  connectionLimit?: number | undefined;
+  max?: number | undefined;
+  min?: number | undefined;
+  idleTimeoutMillis?: number | undefined;
+}
+export function createPool(conf: Config): Pool {
+  if (conf.max && conf.max > 0 && !conf.connectionLimit) {
+    conf.connectionLimit = conf.max;
+  }
+  const pool = createPool2(conf);
+  return pool;
 }
 export class PoolManager implements Manager {
   constructor(public pool: Pool) {
