@@ -81,7 +81,7 @@ export function execBatch(pool: Pool, statements: Statement[], firstSuccess?: bo
               return reject(er1);
             });
           } else {
-            let query0: string = '';
+            let query0 = '';
             const queries: string[] = [];
             const l = statements.length;
             for (let j = 0; j < l; j++) {

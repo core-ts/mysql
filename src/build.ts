@@ -50,7 +50,7 @@ export function metadata(attrs: Attributes): Metadata {
       isMap = true;
     }
   }
-  
+
   if (isMap) {
     m.map = mp;
   }
