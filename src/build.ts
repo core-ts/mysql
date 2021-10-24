@@ -26,7 +26,7 @@ export function metadata(attrs: Attributes): Metadata {
   const ats: Attribute[] = [];
   const bools: Attribute[] = [];
   const fields: string[] = [];
-  let ver: string;
+  const m: Metadata = {keys: ats, fields};
   let isMap = false;
   for (const k of ks) {
     const attr = attrs[k];
@@ -41,7 +41,7 @@ export function metadata(attrs: Attributes): Metadata {
       bools.push(attr);
     }
     if (attr.version) {
-      ver = k;
+      m.version = k;
     }
     const field = (attr.field ? attr.field : k);
     const s = field.toLowerCase();
@@ -50,7 +50,7 @@ export function metadata(attrs: Attributes): Metadata {
       isMap = true;
     }
   }
-  const m: Metadata = {keys: ats, fields, version: ver};
+  
   if (isMap) {
     m.map = mp;
   }
@@ -59,7 +59,7 @@ export function metadata(attrs: Attributes): Metadata {
   }
   return m;
 }
-export function buildToSave<T>(obj: T, table: string, attrs: Attributes, ver?: string, buildParam?: (i: number) => string, i?: number): Statement {
+export function buildToSave<T>(obj: T, table: string, attrs: Attributes, ver?: string, buildParam?: (i: number) => string, i?: number): Statement|undefined {
   if (!i) {
     i = 1;
   }
@@ -72,13 +72,14 @@ export function buildToSave<T>(obj: T, table: string, attrs: Attributes, ver?: s
   const values: string[] = [];
   const args: any[] = [];
   let isVersion = false;
+  const o: any = obj;
   for (const k of ks) {
     const attr = attrs[k];
     attr.name = k;
     if (attr.key) {
       pks.push(attr);
     }
-    let v = obj[k];
+    let v = o[k];
     if (v === undefined || v == null) {
       v = attr.default;
     }
@@ -119,7 +120,7 @@ export function buildToSave<T>(obj: T, table: string, attrs: Attributes, ver?: s
   }
   if (pks.length === 0) {
     if (cols.length === 0) {
-      return null;
+      return undefined;
     } else {
       const q = `insert into ${table}(${cols.join(',')})values(${values.join(',')})`;
       return { query: q, params: args };
@@ -127,7 +128,7 @@ export function buildToSave<T>(obj: T, table: string, attrs: Attributes, ver?: s
   } else {
     const colSet: string[] = [];
     for (const k of ks) {
-      const v = obj[k];
+      const v = o[k];
       if (v !== undefined) {
         const attr = attrs[k];
         if (attr && !attr.key && !attr.ignored && !attr.noupdate) {
@@ -178,9 +179,10 @@ export function buildToSaveBatch<T>(objs: T[], table: string, attrs: Attributes,
     const values: string[] = [];
     const args: any[] = [];
     let isVersion = false;
+    const o: any = obj;
     for (const k of ks) {
       const attr = attrs[k];
-      let v = obj[k];
+      let v = o[k];
       if (v === undefined || v == null) {
         v = attr.default;
       }
@@ -221,7 +223,7 @@ export function buildToSaveBatch<T>(objs: T[], table: string, attrs: Attributes,
     }
     const colSet: string[] = [];
     for (const k of ks) {
-      const v = obj[k];
+      const v = o[k];
       if (v !== undefined) {
         const attr = attrs[k];
         if (attr && !attr.key && !attr.ignored && k !== ver && !attr.noupdate) {

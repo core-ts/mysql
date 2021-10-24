@@ -50,7 +50,7 @@ export class PoolManager implements Manager {
     const p = (ctx ? ctx : this.pool);
     return query(p, sql, args, m, bools);
   }
-  queryOne<T>(sql: string, args?: any[], m?: StringMap, bools?: Attribute[], ctx?: any): Promise<T> {
+  queryOne<T>(sql: string, args?: any[], m?: StringMap, bools?: Attribute[], ctx?: any): Promise<T|null> {
     const p = (ctx ? ctx : this.pool);
     return queryOne(p, sql, args, m, bools);
   }
@@ -81,7 +81,7 @@ export function execBatch(pool: Pool, statements: Statement[], firstSuccess?: bo
               return reject(er1);
             });
           } else {
-            let query0: string;
+            let query0: string = '';
             const queries: string[] = [];
             const l = statements.length;
             for (let j = 0; j < l; j++) {
@@ -207,7 +207,7 @@ export function query<T>(pool: Pool, sql: string, args?: any[], m?: StringMap, b
     });
   });
 }
-export function queryOne<T>(pool: Pool, sql: string, args?: any[], m?: StringMap, bools?: Attribute[]): Promise<T> {
+export function queryOne<T>(pool: Pool, sql: string, args?: any[], m?: StringMap, bools?: Attribute[]): Promise<T|null> {
   return query<T>(pool, sql, args, m, bools).then(r => {
     return (r && r.length > 0 ? r[0] : null);
   });
@@ -218,7 +218,7 @@ export function execScalar<T>(pool: Pool, sql: string, args?: any[]): Promise<T>
       return null;
     } else {
       const keys = Object.keys(r);
-      return r[keys[0]];
+      return (r as any)[keys[0]];
     }
   });
 }
@@ -228,6 +228,9 @@ export function count(pool: Pool, sql: string, args?: any[]): Promise<number> {
 
 export function save<T>(pool: Pool|((sql: string, args?: any[]) => Promise<number>), obj: T, table: string, attrs: Attributes, ver?: string, buildParam?: (i: number) => string, i?: number): Promise<number> {
   const s = buildToSave(obj, table, attrs, ver, buildParam);
+  if (!s) {
+    return Promise.resolve(-1);
+  }
   if (typeof pool === 'function') {
     return pool(s.query, s.params);
   } else {
@@ -242,7 +245,7 @@ export function saveBatch<T>(pool: Pool|((statements: Statement[]) => Promise<nu
     return execBatch(pool, s);
   }
 }
-export function toArray(arr: any[]): any[] {
+export function toArray(arr?: any[]): any[] {
   if (!arr || arr.length === 0) {
     return [];
   }
@@ -291,16 +294,19 @@ export function handleBool<T>(objs: T[], bools: Attribute[]) {
     return objs;
   }
   for (const obj of objs) {
+    const o: any = obj;
     for (const field of bools) {
-      const v = obj[field.name];
-      if (typeof v !== 'boolean' && v != null && v !== undefined ) {
-        const b = field.true;
-        if (b == null || b === undefined) {
-          // tslint:disable-next-line:triple-equals
-          obj[field.name] = ('1' == v || 'T' == v || 'Y' == v || 'true' == v || 'on' == v);
-        } else {
-          // tslint:disable-next-line:triple-equals
-          obj[field.name] = (v == b ? true : false);
+      if (field.name) {
+        const v = o[field.name];
+        if (typeof v !== 'boolean' && v != null && v !== undefined ) {
+          const b = field.true;
+          if (b == null || b === undefined) {
+            // tslint:disable-next-line:triple-equals
+            o[field.name] = ('1' == v || 'T' == v || 'Y' == v || 'true' == v || 'on' == v);
+          } else {
+            // tslint:disable-next-line:triple-equals
+            o[field.name] = (v == b ? true : false);
+          }
         }
       }
     }
@@ -315,16 +321,16 @@ export function map<T>(obj: T, m?: StringMap): any {
   if (mkeys.length === 0) {
     return obj;
   }
-  const obj2: any = {};
+  const o: any = {};
   const keys = Object.keys(obj);
   for (const key of keys) {
     let k0 = m[key];
     if (!k0) {
       k0 = key;
     }
-    obj2[k0] = obj[key];
+    o[k0] = (obj as any)[key];
   }
-  return obj2;
+  return o;
 }
 export function mapArray<T>(results: T[], m?: StringMap): T[] {
   if (!m) {
@@ -351,7 +357,7 @@ export function mapArray<T>(results: T[], m?: StringMap): T[] {
   }
   return objs;
 }
-export function getFields(fields: string[], all?: string[]): string[] {
+export function getFields(fields: string[], all?: string[]): string[]|undefined {
   if (!fields || fields.length === 0) {
     return undefined;
   }
@@ -404,7 +410,7 @@ export class StringService {
   load(key: string, max: number): Promise<string[]> {
     const s = `select ${this.column} from ${this.table} where ${this.column} like ? order by ${this.column} limit ${max}`;
     return query(this.pool, s, ['' + key + '%']).then(arr => {
-      return arr.map(i => i[this.column] as string);
+      return arr.map(i => (i as any)[this.column] as string);
     });
   }
   save(values: string[]): Promise<number> {
@@ -420,7 +426,7 @@ export class StringService {
   }
 }
 
-export function version(attrs: Attributes): Attribute {
+export function version(attrs: Attributes): Attribute|undefined {
   const ks = Object.keys(attrs);
   for (const k of ks) {
     const attr = attrs[k];
@@ -465,7 +471,7 @@ export class MySQLWriter<T> {
       if (this.exec) {
         return this.exec(stmt.query, stmt.params);
       } else {
-        return exec(this.pool, stmt.query, stmt.params);
+        return exec(this.pool as any, stmt.query, stmt.params);
       }
     } else {
       return Promise.resolve(0);
@@ -510,7 +516,7 @@ export class MySQLBatchWriter<T> {
       if (this.execute) {
         return this.execute(stmts);
       } else {
-        return execBatch(this.pool, stmts);
+        return execBatch(this.pool as any, stmts);
       }
     } else {
       return Promise.resolve(0);
@@ -523,13 +529,11 @@ export interface AnyMap {
 }
 // tslint:disable-next-line:max-classes-per-file
 export class MySQLChecker {
-  constructor(private pool: Pool, private service?: string, private timeout?: number) {
-    if (!this.timeout) {
-      this.timeout = 4200;
-    }
-    if (!this.service) {
-      this.service = 'mysql';
-    }
+  timeout: number;
+  service: string;
+  constructor(private pool: Pool, service?: string, timeout?: number) {
+    this.timeout = (timeout ? timeout : 4200);
+    this.service = (service ? service : 'mysql');
     this.check = this.check.bind(this);
     this.name = this.name.bind(this);
     this.build = this.build.bind(this);

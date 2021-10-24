@@ -10,7 +10,7 @@ export interface Manager {
   exec(sql: string, args?: any[], ctx?: any): Promise<number>;
   execBatch(statements: Statement[], firstSuccess?: boolean, ctx?: any): Promise<number>;
   query<T>(sql: string, args?: any[], m?: StringMap, bools?: Attribute[], ctx?: any): Promise<T[]>;
-  queryOne<T>(sql: string, args?: any[], m?: StringMap, bools?: Attribute[], ctx?: any): Promise<T>;
+  queryOne<T>(sql: string, args?: any[], m?: StringMap, bools?: Attribute[], ctx?: any): Promise<T|null>;
   execScalar<T>(sql: string, args?: any[], ctx?: any): Promise<T>;
   count(sql: string, args?: any[], ctx?: any): Promise<number>;
 }
