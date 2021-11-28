@@ -39,7 +39,7 @@ export interface Attribute {
   format?: FormatType;
   required?: boolean;
   match?: MatchType;
-  default?: string|number|Date;
+  default?: string|number|Date|boolean;
   key?: boolean;
   unique?: boolean;
   enum?: string[] | number[];
