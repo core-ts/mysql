@@ -31,12 +31,16 @@ export function createPool(conf: Config): Pool {
 }
 export class PoolManager implements Manager {
   constructor(public pool: Pool) {
+    this.param = this.param.bind(this);
     this.exec = this.exec.bind(this);
     this.execBatch = this.execBatch.bind(this);
     this.query = this.query.bind(this);
     this.queryOne = this.queryOne.bind(this);
     this.execScalar = this.execScalar.bind(this);
     this.count = this.count.bind(this);
+  }
+  param(i: number): string {
+    return '?';
   }
   exec(sql: string, args?: any[], ctx?: any): Promise<number> {
     const p = (ctx ? ctx : this.pool);
