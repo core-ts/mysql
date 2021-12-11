@@ -29,6 +29,7 @@ export function createPool(conf: Config): Pool {
   const pool = createPool2(conf);
   return pool;
 }
+// tslint:disable-next-line:max-classes-per-file
 export class PoolManager implements Manager {
   constructor(public pool: Pool) {
     this.param = this.param.bind(this);
@@ -407,6 +408,7 @@ export function isEmpty(s: string): boolean {
   return !(s && s.length > 0);
 }
 
+// tslint:disable-next-line:max-classes-per-file
 export class StringService {
   constructor(protected pool: Pool, public table: string, public column: string) {
     this.load = this.load.bind(this);

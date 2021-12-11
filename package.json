@@ -1,6 +1,6 @@
 {
   "name": "mysql-core",
-  "version": "0.1.14",
+  "version": "0.1.15",
   "description": "MySQL",
   "main": "./lib/index.js",
   "types": "./src/index.ts",
