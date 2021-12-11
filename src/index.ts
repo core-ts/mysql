@@ -39,6 +39,7 @@ export class PoolManager implements Manager {
     this.execScalar = this.execScalar.bind(this);
     this.count = this.count.bind(this);
   }
+  driver = 'mysql';
   param(i: number): string {
     return '?';
   }
