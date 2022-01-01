@@ -1,6 +1,6 @@
-import {createPool as createPool2, format, Pool, PoolConnection} from 'mysql';
-import {buildToSave, buildToSaveBatch} from './build';
-import {Attribute, Attributes, Manager, Statement, StringMap} from './metadata';
+import { createPool as createPool2, format, Pool, PoolConnection } from 'mysql';
+import { buildToSave, buildToSaveBatch } from './build';
+import { Attribute, Attributes, Manager, Statement, StringMap } from './metadata';
 
 export * from './metadata';
 export * from './build';
@@ -56,7 +56,7 @@ export class PoolManager implements Manager {
     const p = (ctx ? ctx : this.pool);
     return query(p, sql, args, m, bools);
   }
-  queryOne<T>(sql: string, args?: any[], m?: StringMap, bools?: Attribute[], ctx?: any): Promise<T|null> {
+  queryOne<T>(sql: string, args?: any[], m?: StringMap, bools?: Attribute[], ctx?: any): Promise<T | null> {
     const p = (ctx ? ctx : this.pool);
     return queryOne(p, sql, args, m, bools);
   }
@@ -188,7 +188,7 @@ function buildError(err: any): any {
   }
   return err;
 }
-export function exec(pool: Pool|PoolConnection, sql: string, args?: any[]): Promise<number> {
+export function exec(pool: Pool | PoolConnection, sql: string, args?: any[]): Promise<number> {
   const p = toArray(args);
   return new Promise<number>((resolve, reject) => {
     return pool.query(sql, p, (err, results) => {
@@ -213,7 +213,7 @@ export function query<T>(pool: Pool, sql: string, args?: any[], m?: StringMap, b
     });
   });
 }
-export function queryOne<T>(pool: Pool, sql: string, args?: any[], m?: StringMap, bools?: Attribute[]): Promise<T|null> {
+export function queryOne<T>(pool: Pool, sql: string, args?: any[], m?: StringMap, bools?: Attribute[]): Promise<T | null> {
   return query<T>(pool, sql, args, m, bools).then(r => {
     return (r && r.length > 0 ? r[0] : null);
   });
@@ -232,7 +232,7 @@ export function count(pool: Pool, sql: string, args?: any[]): Promise<number> {
   return execScalar<number>(pool, sql, args);
 }
 
-export function save<T>(pool: Pool|((sql: string, args?: any[]) => Promise<number>), obj: T, table: string, attrs: Attributes, ver?: string, buildParam?: (i: number) => string, i?: number): Promise<number> {
+export function save<T>(pool: Pool | ((sql: string, args?: any[]) => Promise<number>), obj: T, table: string, attrs: Attributes, ver?: string, buildParam?: (i: number) => string, i?: number): Promise<number> {
   const s = buildToSave(obj, table, attrs, ver, buildParam);
   if (!s) {
     return Promise.resolve(-1);
@@ -243,7 +243,7 @@ export function save<T>(pool: Pool|((sql: string, args?: any[]) => Promise<numbe
     return exec(pool, s.query, s.params);
   }
 }
-export function saveBatch<T>(pool: Pool|((statements: Statement[]) => Promise<number>), objs: T[], table: string, attrs: Attributes, ver?: string, buildParam?: (i: number) => string): Promise<number> {
+export function saveBatch<T>(pool: Pool | ((statements: Statement[]) => Promise<number>), objs: T[], table: string, attrs: Attributes, ver?: string, buildParam?: (i: number) => string): Promise<number> {
   const s = buildToSaveBatch(objs, table, attrs, ver, buildParam);
   if (typeof pool === 'function') {
     return pool(s);
@@ -304,7 +304,7 @@ export function handleBool<T>(objs: T[], bools: Attribute[]) {
     for (const field of bools) {
       if (field.name) {
         const v = o[field.name];
-        if (typeof v !== 'boolean' && v != null && v !== undefined ) {
+        if (typeof v !== 'boolean' && v != null && v !== undefined) {
           const b = field.true;
           if (b == null || b === undefined) {
             // tslint:disable-next-line:triple-equals
@@ -328,7 +328,7 @@ export function map<T>(obj: T, m?: StringMap): any {
     return obj;
   }
   const o: any = {};
-  const keys = Object.keys(obj);
+  const keys = Object.keys(obj as any);
   for (const key of keys) {
     let k0 = m[key];
     if (!k0) {
@@ -351,7 +351,7 @@ export function mapArray<T>(results: T[], m?: StringMap): T[] {
   for (let i = 0; i < length; i++) {
     const obj = results[i];
     const obj2: any = {};
-    const keys = Object.keys(obj);
+    const keys = Object.keys(obj as any);
     for (const key of keys) {
       let k0 = m[key];
       if (!k0) {
@@ -363,11 +363,11 @@ export function mapArray<T>(results: T[], m?: StringMap): T[] {
   }
   return objs;
 }
-export function getFields(fields: string[], all?: string[]): string[]|undefined {
+export function getFields(fields: string[], all?: string[]): string[] | undefined {
   if (!fields || fields.length === 0) {
     return undefined;
   }
-  const ext: string [] = [];
+  const ext: string[] = [];
   if (all) {
     for (const s of fields) {
       if (all.includes(s)) {
@@ -433,7 +433,7 @@ export class StringService {
   }
 }
 
-export function version(attrs: Attributes): Attribute|undefined {
+export function version(attrs: Attributes): Attribute | undefined {
   const ks = Object.keys(attrs);
   for (const k of ks) {
     const attr = attrs[k];
@@ -451,7 +451,7 @@ export class MySQLWriter<T> {
   exec?: (sql: string, args?: any[]) => Promise<number>;
   map?: (v: T) => T;
   param?: (i: number) => string;
-  constructor(pool: Pool|((sql: string, args?: any[]) => Promise<number>), public table: string, public attributes: Attributes, toDB?: (v: T) => T, buildParam?: (i: number) => string) {
+  constructor(pool: Pool | ((sql: string, args?: any[]) => Promise<number>), public table: string, public attributes: Attributes, toDB?: (v: T) => T, buildParam?: (i: number) => string) {
     this.write = this.write.bind(this);
     if (typeof pool === 'function') {
       this.exec = pool;
@@ -469,7 +469,7 @@ export class MySQLWriter<T> {
     if (!obj) {
       return Promise.resolve(0);
     }
-    let obj2 = obj;
+    let obj2: NonNullable<T> | T = obj;
     if (this.map) {
       obj2 = this.map(obj);
     }
@@ -486,13 +486,81 @@ export class MySQLWriter<T> {
   }
 }
 // tslint:disable-next-line:max-classes-per-file
+export class MySQLStreamWriter<T> {
+  list: T[] = [];
+  size = 0;
+  pool?: Pool;
+  version?: string;
+  execBatch?: (statements: Statement[]) => Promise<number>;
+  map?: (v: T) => T;
+  param?: (i: number) => string;
+  constructor(pool: Pool | ((statements: Statement[]) => Promise<number>), public table: string, public attributes: Attributes, size?: number, toDB?: (v: T) => T, buildParam?: (i: number) => string) {
+    this.write = this.write.bind(this);
+    this.flush = this.flush.bind(this);
+    if (typeof pool === 'function') {
+      this.execBatch = pool;
+    } else {
+      this.pool = pool;
+    }
+    this.param = buildParam;
+    this.map = toDB;
+    const x = version(attributes);
+    if (x) {
+      this.version = x.name;
+    }
+    if (size) {
+      this.size = size;
+    }
+  }
+  write(obj: T): Promise<number> {
+    if (!obj) {
+      return Promise.resolve(0);
+    }
+    let obj2: NonNullable<T> | T = obj;
+    if (this.map) {
+      obj2 = this.map(obj);
+      this.list.push(obj2);
+    } else {
+      this.list.push(obj);
+    }
+    if (this.list.length < this.size) {
+      return Promise.resolve(0);
+    } else {
+      return this.flush();
+    }
+  }
+  flush(): Promise<number> {
+    if (!this.list || this.list.length === 0) {
+      return Promise.resolve(0);
+    } else {
+      const total = this.list.length;
+      const stmt = buildToSaveBatch(this.list, this.table, this.attributes, this.version, this.param);
+      if (stmt) {
+        if (this.execBatch) {
+          return this.execBatch(stmt).then(r => {
+            this.list = [];
+            return total;
+          });
+        } else {
+          return execBatch(this.pool as any, stmt).then(r => {
+            this.list = [];
+            return total;
+          });
+        }
+      } else {
+        return Promise.resolve(0);
+      }
+    }
+  }
+}
+// tslint:disable-next-line:max-classes-per-file
 export class MySQLBatchWriter<T> {
   pool?: Pool;
   version?: string;
   execute?: (statements: Statement[]) => Promise<number>;
   map?: (v: T) => T;
   param?: (i: number) => string;
-  constructor(pool: Pool|((statements: Statement[]) => Promise<number>), public table: string, public attributes: Attributes, toDB?: (v: T) => T, buildParam?: (i: number) => string) {
+  constructor(pool: Pool | ((statements: Statement[]) => Promise<number>), public table: string, public attributes: Attributes, toDB?: (v: T) => T, buildParam?: (i: number) => string) {
     this.write = this.write.bind(this);
     if (typeof pool === 'function') {
       this.execute = pool;
